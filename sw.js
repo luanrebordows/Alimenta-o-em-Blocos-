@@ -1,4 +1,4 @@
-const CACHE = 'blocos-v3';
+const CACHE = 'blocos-v4-1';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 // cache: 'reload' evita pegar a versão velha do cache do navegador ao instalar.
 self.addEventListener('install', e => {
