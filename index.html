@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f5f6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Blocos do Dia</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<style>
+/* Layout: one column phone-first app; sticky summary bar on top; meal cards fill with block chips. */
+:root{
+  --bg:#f6f4ee; --card:#ffffff; --fg:#1d1f1a; --mute:#6b6e62; --line:#e2dfd4;
+  --p:#b4432f; --p-soft:#f6dcd6; --c:#c98a1b; --c-soft:#f8ead0; --g:#3f7f4e; --g-soft:#d8ecdb;
+  --accent:#1f5f6b; --accent-soft:#d9eaed; --warn:#9a2d1f; --warn-soft:#f4d8d3;
+  --display:'Manrope',system-ui,-apple-system,sans-serif; --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#15171a; --card:#1e2126; --fg:#ecebe4; --mute:#a0a398; --line:#30343a;
+  --p:#e67a63; --p-soft:#3f241f; --c:#e3ab45; --c-soft:#3b2f18; --g:#6fbf7f; --g-soft:#1f3425;
+  --accent:#6fb9c6; --accent-soft:#1c3338; --warn:#f08a7a; --warn-soft:#3e1d19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15171a; --card:#1e2126; --fg:#ecebe4; --mute:#a0a398; --line:#30343a;
+  --p:#e67a63; --p-soft:#3f241f; --c:#e3ab45; --c-soft:#3b2f18; --g:#6fbf7f; --g-soft:#1f3425;
+  --accent:#6fb9c6; --accent-soft:#1c3338; --warn:#f08a7a; --warn-soft:#3e1d19; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+h1{font-family:var(--display);font-weight:800;font-size:22px;margin:0;letter-spacing:-.01em}
+h2{font-family:var(--display);font-weight:700;font-size:16px;margin:0}
+.sub{color:var(--mute);font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;min-height:40px}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;flex:1;min-width:0}
+.summary{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px 10px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.meters{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.meter{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.meter b{font-family:var(--display);font-size:18px;font-variant-numeric:tabular-nums;display:block}
+.meter small{color:var(--mute);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.meter .bar{height:4px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
+.meter .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.meter.P .bar i{background:var(--p)}.meter.C .bar i{background:var(--c)}.meter.G .bar i{background:var(--g)}
+.meter.over b{color:var(--warn)}
+.tabs{display:flex;gap:6px;margin:14px 0 12px}
+.tabs button{flex:1;min-width:0;font-weight:700;font-size:13px;padding:8px 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font-size:13px;border:1px solid transparent;font-variant-numeric:tabular-nums}
+.chip.P{background:var(--p-soft);color:var(--p)}.chip.C{background:var(--c-soft);color:var(--c)}.chip.G{background:var(--g-soft);color:var(--g)}.chip.L{background:var(--accent-soft);color:var(--accent)}
+.chip.X{background:var(--warn-soft);color:var(--warn)}
+.chip button{border:0;background:transparent;padding:0 2px;min-height:0;font-size:15px;line-height:1;color:inherit}
+.slots{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.slot{width:22px;height:10px;border-radius:3px;border:1px dashed var(--line)}
+.slot.P{border-color:var(--p)}.slot.C{border-color:var(--c)}.slot.G{border-color:var(--g)}
+.slot.full.P{background:var(--p);border-style:solid}.slot.full.C{background:var(--c);border-style:solid}.slot.full.G{background:var(--g);border-style:solid}
+.slot.extra{background:var(--warn);border-color:var(--warn)}
+.picker{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.picker h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:8px 0 6px}
+.foods{display:flex;flex-wrap:wrap;gap:6px}
+.foods button{padding:6px 10px;font-size:13px;border-radius:999px;min-height:34px}
+.foods button.P{border-color:var(--p);color:var(--p)}.foods button.C{border-color:var(--c);color:var(--c)}.foods button.G{border-color:var(--g);color:var(--g)}
+.note{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+.alert{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+.combo{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.combo:last-child{border-bottom:0}
+.combo .cost{display:flex;gap:4px;flex-shrink:0}
+.combo .cost span{font-size:11px;padding:2px 6px;border-radius:6px;font-weight:700;font-variant-numeric:tabular-nums}
+.cost .P{background:var(--p-soft);color:var(--p)}.cost .C{background:var(--c-soft);color:var(--c)}.cost .G{background:var(--g-soft);color:var(--g)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+.tbl{overflow-x:auto}
+.water{display:flex;gap:6px;align-items:center}
+.water .cups{display:flex;gap:3px;flex-wrap:wrap}
+.water .cup{width:14px;height:20px;border-radius:3px 3px 5px 5px;border:1px solid var(--accent);background:transparent}
+.water .cup.on{background:var(--accent)}
+.ghost{background:transparent;border-color:transparent;color:var(--mute);font-size:13px}
+.hidden{display:none}
+ul{padding-left:18px;margin:6px 0}
+li{margin:3px 0}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="summary">
+    <div class="row between">
+      <div>
+        <h1>Blocos do Dia</h1>
+        <div class="sub" id="dateLine"></div>
+      </div>
+      <div class="seg" role="group" aria-label="Tipo de dia">
+        <button id="btTreino">Treino</button>
+        <button id="btDescanso">Descanso</button>
+      </div>
+    </div>
+    <div class="meters" id="meters"></div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button data-tab="blocos" class="on">Blocos</button>
+    <button data-tab="quero">Quero comer isso</button>
+    <button data-tab="ref">Referência</button>
+  </div>
+
+  <section id="tab-blocos">
+    <div id="meals"></div>
+    <div class="card">
+      <div class="row between">
+        <div><h2>Noite</h2><div class="sub">Leite desnatado 200ml + 1 colher medida de Nescau ou Ovomaltine. Fixo, não conta nos blocos.</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Água</h2>
+      <div class="sub">Cada copo = 250ml. Meta 3 L (12 copos), +2 copos em dia de treino.</div>
+      <div class="water" style="margin-top:8px">
+        <div class="cups" id="cups"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="cupAdd">+ copo</button>
+        <button id="cupRm" class="ghost">− copo</button>
+        <span class="sub" id="waterTxt"></span>
+      </div>
+    </div>
+    <div class="row between">
+      <button class="ghost" id="resetDay">Limpar o dia</button>
+      <span class="sub" id="freeTxt"></span>
+    </div>
+  </section>
+
+  <section id="tab-quero" class="hidden">
+    <div class="card">
+      <h2>Escolha o que quer comer</h2>
+      <div class="sub">O app desconta os blocos e reorganiza o resto do dia. Proteína das outras refeições não cai.</div>
+      <div id="combos"></div>
+    </div>
+    <div id="queroResult"></div>
+  </section>
+
+  <section id="tab-ref" class="hidden">
+    <div class="card">
+      <h2>Metas</h2>
+      <div class="tbl"><table>
+        <tr><th>Refeição</th><th>P</th><th>C treino</th><th>C descanso</th><th>G</th></tr>
+        <tr><td>Café (antes/depois do cardio)</td><td>2</td><td>2</td><td>2</td><td>1</td></tr>
+        <tr><td>Almoço ~14h</td><td>2</td><td>3</td><td>3</td><td>1</td></tr>
+        <tr><td>Jantar (pós-academia)</td><td>2</td><td>2</td><td>1</td><td>1</td></tr>
+        <tr><td><b>Dia</b></td><td><b>6</b></td><td><b>7</b></td><td><b>6</b></td><td><b>3</b></td></tr>
+      </table></div>
+      <div class="sub" style="margin-top:8px">≈150 g de proteína, 2.150 kcal (treino) / 2.000 kcal (descanso). Dias de treino: segunda a quinta.</div>
+    </div>
+    <div class="card">
+      <h2>O que vale 1 bloco</h2>
+      <div class="tbl"><table>
+        <tr><th>P · ~25 g proteína</th></tr>
+        <tr><td>100 g de frango, patinho, alcatra ou peixe (cozido) · 1 lata de atum · 4 ovos · 250 g de iogurte proteico ou skyr (≥8 g proteína/100 g no rótulo)</td></tr>
+        <tr><th>C · ~120 kcal</th></tr>
+        <tr><td>4 col. sopa de arroz · 1 batata média · 1 concha de feijão · 3 col. sopa de aveia · 2 fatias de pão · 1 banana · ½ manga · 1 cacho pequeno de uva · 2 xíc. de abacaxi ou morango · 1 col. sopa de mel</td></tr>
+        <tr><th>G · ~90 kcal</th></tr>
+        <tr><td>1 col. sopa de azeite · ¼ abacate · 1 fatia de queijo · 1 punhado pequeno de castanhas · 1 col. de requeijão</td></tr>
+        <tr><th>Livre</th></tr>
+        <tr><td>Salada, legumes, café e chá sem açúcar, água</td></tr>
+      </table></div>
+    </div>
+    <div class="card">
+      <h2>Regras para variar</h2>
+      <ul>
+        <li>Troque dentro do mesmo tipo. Batata por arroz pode; carne por batata não.</li>
+        <li>Cardio de manhã: 1 C de fruta antes de sair, o resto do café depois.</li>
+        <li>Academia à noite: o jantar carrega 2 C nos dias de treino.</li>
+        <li>Até 2 refeições livres por semana. Nunca um dia inteiro.</li>
+        <li>Sessão com o treinador acima de 60 min: +1 ou +2 C de fruta naquele dia.</li>
+        <li>Meça a cintura a cada 2 semanas. De 88–90 cm para 82–84 cm é o sinal certo.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const FOODS=[
+ {id:'frango',n:'Frango 100 g',t:'P',b:1},{id:'carne',n:'Carne magra 100 g',t:'P',b:1},{id:'peixe',n:'Peixe 100 g',t:'P',b:1},
+ {id:'atum',n:'Atum 1 lata',t:'P',b:1},{id:'ovos4',n:'4 ovos',t:'P',b:1},{id:'ovos2',n:'2 ovos',t:'P',b:.5},{id:'iog',n:'Iogurte proteico 250 g',t:'P',b:1},
+ {id:'arroz',n:'Arroz 4 col.',t:'C',b:1},{id:'batata',n:'Batata média',t:'C',b:1},{id:'feijao',n:'Feijão 1 concha',t:'C',b:1},{id:'aveia',n:'Aveia 3 col.',t:'C',b:1},
+ {id:'pao',n:'Pão 2 fatias',t:'C',b:1},{id:'banana',n:'Banana',t:'C',b:1},{id:'manga',n:'½ manga',t:'C',b:1},{id:'uva',n:'Uva cacho pequeno',t:'C',b:1},
+ {id:'abacaxi',n:'Abacaxi 2 xíc.',t:'C',b:1},{id:'morango',n:'Morango 2 xíc.',t:'C',b:1},{id:'mel',n:'Mel 1 col. sopa',t:'C',b:1},{id:'melcha',n:'Mel 1 col. chá',t:'C',b:.25},
+ {id:'azeite',n:'Azeite 1 col.',t:'G',b:1},{id:'abacate',n:'¼ abacate',t:'G',b:1},{id:'queijo',n:'Queijo 1 fatia',t:'G',b:1},{id:'castanha',n:'Castanhas punhado',t:'G',b:1},{id:'requeijao',n:'Requeijão 1 col.',t:'G',b:1},
+ {id:'salada',n:'Salada / legumes',t:'L',b:0},{id:'leite',n:'Leite desnatado 200 ml',t:'C',b:.75}
+];
+const COMBOS=[
+ {id:'hbcasa',n:'Hambúrguer em casa (patinho, pão pequeno)',P:2,C:3,G:2},
+ {id:'hbfora',n:'Hambúrguer fora (artesanal)',P:2,C:3,G:3},
+ {id:'pizza',n:'Pizza 2 fatias',P:1,C:3,G:2},
+ {id:'churras',n:'Churrasco (carne + 1 porção de carbo)',P:3,C:1,G:2},
+ {id:'acai',n:'Açaí 300 ml com granola',P:0,C:3,G:1},
+ {id:'vitabacate',n:'Vitamina de abacate (¼ abacate, leite, banana)',P:0,C:2,G:1},
+ {id:'saladafruta',n:'Salada de fruta grande (manga, banana, uva)',P:0,C:3,G:0},
+ {id:'iogmel',n:'Iogurte + mel + aveia (seu café)',P:1,C:2,G:0},
+ {id:'lanche',n:'Lanche natural de frango',P:1,C:2,G:1},
+ {id:'pastel',n:'2 pastéis / salgados',P:1,C:3,G:3},
+];
+const MEALS=[{id:'cafe',n:'Café',sub:'1 C de fruta antes do cardio, o resto depois'},{id:'almoco',n:'Almoço ~14h',sub:'Carne ou frango + arroz/batata + feijão + salada'},{id:'jantar',n:'Jantar',sub:'Pós-academia. Proteína antes do doce.'}];
+const DAY_TOTAL={treino:{P:6,C:7,G:3},descanso:{P:6,C:6,G:3}};
+function baseTargets(day){return {cafe:{P:2,C:2,G:1},almoco:{P:2,C:3,G:1},jantar:{P:2,C:day==='treino'?2:1,G:1}};}
+
+const today=new Date();const key='blocos-'+today.toISOString().slice(0,10);
+const wk=today.getDay();
+let S=load()||{day:(wk>=1&&wk<=4)?'treino':'descanso',meals:{cafe:[],almoco:[],jantar:[]},special:null,water:0};
+let freeWeek=loadFree();
+function load(){try{return JSON.parse(localStorage.getItem(key))}catch(e){return null}}
+function save(){try{localStorage.setItem(key,JSON.stringify(S))}catch(e){}}
+function loadFree(){try{const w=JSON.parse(localStorage.getItem('blocos-free'))||{};const wkKey=weekKey();return w.k===wkKey?w.n:0}catch(e){return 0}}
+function saveFree(n){freeWeek=n;try{localStorage.setItem('blocos-free',JSON.stringify({k:weekKey(),n}))}catch(e){}}
+function weekKey(){const d=new Date(today);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.toISOString().slice(0,10)}
+
+function fmt(x){if(x===.5)return '½';if(x===.25)return '¼';if(x===.75)return '¾';return (Math.round(x*4)/4).toString().replace('.5','½').replace('.25','¼').replace('.75','¾')}
+
+// Targets after special item: subtract overflow from other meals (G first, then C), keep P untouched
+function targets(){
+  const t=baseTargets(S.day);
+  if(!S.special)return {t,over:null,free:false};
+  const c=COMBOS.find(x=>x.id===S.special.combo);const m=S.special.meal;
+  const own=t[m];
+  const over={P:Math.max(0,c.P-own.P),C:Math.max(0,c.C-own.C),G:Math.max(0,c.G-own.G)};
+  t[m]={P:Math.min(own.P,c.P),C:Math.min(own.C,c.C),G:Math.min(own.G,c.G)};
+  // if combo has less P than the meal target, the missing P moves to other meals (add)
+  const missingP=Math.max(0,own.P-c.P);
+  const others=MEALS.map(x=>x.id).filter(x=>x!==m).reverse(); // jantar first, then almoço, then café
+  let left={C:over.C,G:over.G};
+  for(const k of ['G','C']){for(const o of others){while(left[k]>0&&t[o][k]>1){t[o][k]--;left[k]--;}}}
+  // overflow G can still be absorbed by C of other meals (1 G ≈ 0.75 C)
+  if(left.G>0){for(const o of others){while(left.G>0&&t[o].C>1){t[o].C--;left.G--;}}}
+  if(missingP>0){t[others[0]].P+=missingP;}
+  const exceeded=left.C>0||left.G>0||over.P>0;
+  return {t,over:{C:left.C,G:left.G,P:over.P},free:exceeded,combo:c};
+}
+function used(mid){const u={P:0,C:0,G:0};S.meals[mid].forEach(id=>{const f=FOODS.find(x=>x.id===id);if(f&&f.t!=='L')u[f.t]+=f.b});return u}
+function dayUsed(){const d={P:0,C:0,G:0};MEALS.forEach(m=>{const u=used(m.id);d.P+=u.P;d.C+=u.C;d.G+=u.G});if(S.special){const c=COMBOS.find(x=>x.id===S.special.combo);d.P+=c.P;d.C+=c.C;d.G+=c.G}return d}
+
+function render(){
+  document.getElementById('dateLine').textContent=today.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})+(S.day==='treino'?' · dia de treino':' · dia de descanso');
+  document.getElementById('btTreino').className=S.day==='treino'?'on':'';
+  document.getElementById('btDescanso').className=S.day==='descanso'?'on':'';
+  const tot=DAY_TOTAL[S.day];const du=dayUsed();
+  const waterGoal=S.day==='treino'?14:12;
+  document.getElementById('meters').innerHTML=['P','C','G'].map(k=>`<div class="meter ${k} ${du[k]>tot[k]?'over':''}"><small>${k==='P'?'Proteína':k==='C'?'Carbo':'Gordura'}</small><b>${fmt(du[k])}/${tot[k]}</b><div class="bar"><i style="width:${Math.min(100,du[k]/tot[k]*100)}%"></i></div></div>`).join('')+
+    `<div class="meter"><small>Água</small><b>${(S.water*0.25).toFixed(2).replace('.00','').replace(/0$/,'')} L</b><div class="bar"><i style="width:${Math.min(100,S.water/waterGoal*100)}%"></i></div></div>`;
+  renderMeals();renderWater();renderCombos();renderQuero();
+  document.getElementById('freeTxt').textContent=`Refeições livres na semana: ${freeWeek}/2`;
+}
+function renderMeals(){
+  const {t}=targets();
+  document.getElementById('meals').innerHTML=MEALS.map(m=>{
+    const tg=t[m.id];const u=used(m.id);
+    const isSp=S.special&&S.special.meal===m.id;
+    let slots='';['P','C','G'].forEach(k=>{const n=Math.round(tg[k]);const f=Math.floor(u[k]+1e-9);for(let i=0;i<n;i++)slots+=`<span class="slot ${k} ${i<f?'full':''}"></span>`;for(let i=n;i<f;i++)slots+=`<span class="slot ${k} extra"></span>`});
+    const chips=S.meals[m.id].map((id,i)=>{const f=FOODS.find(x=>x.id===id);return `<span class="chip ${f.t}">${f.n}${f.b?` · ${fmt(f.b)}${f.t}`:''}<button data-rm="${m.id}:${i}" aria-label="remover">×</button></span>`}).join('');
+    const spChip=isSp?`<span class="chip X">${targets().combo.n}<button data-rmsp="1" aria-label="remover">×</button></span>`:'';
+    const left={P:tg.P-u.P,C:tg.C-u.C,G:tg.G-u.G};
+    const leftTxt=isSp?'Refeição ocupada pelo item escolhido':['P','C','G'].filter(k=>left[k]>0).map(k=>`${fmt(left[k])} ${k}`).join(' · ')||'Fechada';
+    const overTxt=['P','C','G'].filter(k=>left[k]<0).map(k=>`${fmt(-left[k])} ${k} a mais`).join(' · ');
+    return `<div class="card">
+      <div class="row between"><div><h2>${m.n}</h2><div class="sub">${m.sub}</div></div><div class="sub">Meta ${tg.P}P · ${tg.C}C · ${tg.G}G</div></div>
+      <div class="slots">${slots}</div>
+      <div class="chips">${spChip}${chips}</div>
+      <div class="sub" style="margin-top:6px">Falta: ${leftTxt}</div>
+      ${overTxt?`<div class="alert">${overTxt}. Tire algo daqui ou corte do próximo prato.</div>`:''}
+      ${isSp?'':`<details class="picker"><summary class="sub">Adicionar alimento</summary>
+        ${['P','C','G','L'].map(k=>`<h3>${k==='P'?'Proteína':k==='C'?'Carbo':k==='G'?'Gordura':'Livre'}</h3><div class="foods">${FOODS.filter(f=>f.t===k).map(f=>`<button class="${f.t}" data-add="${m.id}:${f.id}">${f.n}${f.b&&f.b!==1?` (${fmt(f.b)})`:''}</button>`).join('')}</div>`).join('')}
+      </details>`}
+    </div>`}).join('');
+}
+function renderWater(){const goal=S.day==='treino'?14:12;document.getElementById('cups').innerHTML=Array.from({length:goal},(_,i)=>`<span class="cup ${i<S.water?'on':''}"></span>`).join('');document.getElementById('waterTxt').textContent=`${S.water}/${goal} copos`}
+function renderCombos(){document.getElementById('combos').innerHTML=COMBOS.map(c=>`<div class="combo"><div><div>${c.n}</div><div class="cost"><span class="P">${c.P}P</span><span class="C">${c.C}C</span><span class="G">${c.G}G</span></div></div><div class="row" style="flex-wrap:nowrap">${MEALS.map(m=>`<button data-sp="${c.id}:${m.id}" style="padding:6px 8px;font-size:12px">${m.n.split(' ')[0]}</button>`).join('')}</div></div>`).join('')}
+function renderQuero(){
+  const r=targets();const el=document.getElementById('queroResult');
+  if(!S.special){el.innerHTML='<div class="sub">Toque em Café, Almoço ou Jantar ao lado do item para encaixá-lo nessa refeição.</div>';return}
+  const c=r.combo;const m=MEALS.find(x=>x.id===S.special.meal);
+  let html=`<div class="card"><h2>${c.n} no ${m.n}</h2><div class="sub">O resto do dia fica assim:</div><div class="tbl"><table><tr><th>Refeição</th><th>P</th><th>C</th><th>G</th></tr>${MEALS.map(x=>`<tr><td>${x.n}${x.id===m.id?' (o item)':''}</td><td>${r.t[x.id].P}</td><td>${r.t[x.id].C}</td><td>${r.t[x.id].G}</td></tr>`).join('')}</table></div>`;
+  if(r.free){html+=`<div class="alert">Isso passa do dia em ${['P','C','G'].filter(k=>r.over[k]>0).map(k=>`${r.over[k]} ${k}`).join(' · ')}. Conta como refeição livre (${freeWeek}/2 na semana). Amanhã volta ao normal, sem compensar cortando demais.</div>`}
+  else html+=`<div class="note">Cabe no dia. As outras refeições ficam com menos carbo e gordura; a proteína delas não muda.</div>`;
+  html+=`<div class="row" style="margin-top:10px"><button class="on" data-go="blocos">Montar as outras refeições</button><button class="ghost" data-rmsp="1">Desfazer</button></div></div>`;
+  el.innerHTML=html;
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.tab||b.dataset.go){const t=b.dataset.tab||b.dataset.go;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));['blocos','quero','ref'].forEach(k=>document.getElementById('tab-'+k).classList.toggle('hidden',k!==t));if(b.dataset.go)window.scrollTo({top:0});return}
+  if(b.id==='btTreino'){S.day='treino';save();render();return}
+  if(b.id==='btDescanso'){S.day='descanso';save();render();return}
+  if(b.dataset.add){const [m,f]=b.dataset.add.split(':');S.meals[m].push(f);save();render();document.querySelector(`details[open]`)?.removeAttribute('open');return}
+  if(b.dataset.rm){const [m,i]=b.dataset.rm.split(':');S.meals[m].splice(+i,1);save();render();return}
+  if(b.dataset.sp){const [c,m]=b.dataset.sp.split(':');const wasFree=S.special&&targets().free;S.special={combo:c,meal:m};S.meals[m]=[];const nowFree=targets().free;if(nowFree&&!wasFree)saveFree(freeWeek+1);if(!nowFree&&wasFree)saveFree(Math.max(0,freeWeek-1));save();render();return}
+  if(b.dataset.rmsp){if(targets().free)saveFree(Math.max(0,freeWeek-1));S.special=null;save();render();return}
+  if(b.id==='cupAdd'){S.water++;save();render();return}
+  if(b.id==='cupRm'){S.water=Math.max(0,S.water-1);save();render();return}
+  if(b.id==='resetDay'){if(S.special&&targets().free)saveFree(Math.max(0,freeWeek-1));S={day:S.day,meals:{cafe:[],almoco:[],jantar:[]},special:null,water:0};save();render();return}
+});
+render();
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</body>
+</html>
